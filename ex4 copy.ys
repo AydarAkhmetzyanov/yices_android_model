@@ -1,0 +1,202 @@
+(define-type jmlrel (bitvector 64))
+
+(define jmlrel-inverse::(-> jmlrel jmlrel )
+	( lambda 
+		(rel::jmlrel) 
+		(bv-concat 
+		(bv-extract 63 63 rel)
+		(bv-concat 
+		(bv-extract 55 55 rel)
+		(bv-concat 
+		(bv-extract 47 47 rel)
+		(bv-concat 
+		(bv-extract 39 39 rel)
+		(bv-concat 
+		(bv-extract 31 31 rel)
+		(bv-concat 
+		(bv-extract 23 23 rel)
+		(bv-concat 
+		(bv-extract 15 15 rel)
+		(bv-concat 
+		(bv-extract 7 7 rel)
+		(bv-concat 
+		(bv-extract 62 62 rel)
+		(bv-concat 
+		(bv-extract 54 54 rel)
+		(bv-concat 
+		(bv-extract 46 46 rel)
+		(bv-concat 
+		(bv-extract 38 38 rel)
+		(bv-concat 
+		(bv-extract 30 30 rel)
+		(bv-concat 
+		(bv-extract 22 22 rel)
+		(bv-concat 
+		(bv-extract 14 14 rel)
+		(bv-concat 
+		(bv-extract 6 6 rel)
+		(bv-concat 
+		(bv-extract 61 61 rel)
+		(bv-concat 
+		(bv-extract 53 53 rel)
+		(bv-concat 
+		(bv-extract 45 45 rel)
+		(bv-concat 
+		(bv-extract 37 37 rel)
+		(bv-concat 
+		(bv-extract 29 29 rel)
+		(bv-concat 
+		(bv-extract 21 21 rel)
+		(bv-concat 
+		(bv-extract 13 13 rel)
+		(bv-concat 
+		(bv-extract 5 5 rel)
+		(bv-concat 
+		(bv-extract 60 60 rel)
+		(bv-concat 
+		(bv-extract 52 52 rel)
+		(bv-concat 
+		(bv-extract 44 44 rel)
+		(bv-concat 
+		(bv-extract 36 36 rel)
+		(bv-concat 
+		(bv-extract 28 28 rel)
+		(bv-concat 
+		(bv-extract 20 20 rel)
+		(bv-concat 
+		(bv-extract 12 12 rel)
+		(bv-concat 
+		(bv-extract 4 4 rel)
+		(bv-concat 
+		(bv-extract 59 59 rel)
+		(bv-concat 
+		(bv-extract 51 51 rel)
+		(bv-concat 
+		(bv-extract 43 43 rel)
+		(bv-concat 
+		(bv-extract 35 35 rel)
+		(bv-concat 
+		(bv-extract 27 27 rel)
+		(bv-concat 
+		(bv-extract 19 19 rel)
+		(bv-concat 
+		(bv-extract 11 11 rel)
+		(bv-concat 
+		(bv-extract 3 3 rel)
+		(bv-concat 
+		(bv-extract 58 58 rel)
+		(bv-concat 
+		(bv-extract 50 50 rel)
+		(bv-concat 
+		(bv-extract 42 42 rel)
+		(bv-concat 
+		(bv-extract 34 34 rel)
+		(bv-concat 
+		(bv-extract 26 26 rel)
+		(bv-concat 
+		(bv-extract 18 18 rel)
+		(bv-concat 
+		(bv-extract 10 10 rel)
+		(bv-concat 
+		(bv-extract 2 2 rel)
+		(bv-concat 
+		(bv-extract 57 57 rel)
+		(bv-concat 
+		(bv-extract 49 49 rel)
+		(bv-concat 
+		(bv-extract 41 41 rel)
+		(bv-concat 
+		(bv-extract 33 33 rel)
+		(bv-concat 
+		(bv-extract 25 25 rel)
+		(bv-concat 
+		(bv-extract 17 17 rel)
+		(bv-concat 
+		(bv-extract 9 9 rel)
+		(bv-concat 
+		(bv-extract 1 1 rel)
+		(bv-concat 
+		(bv-extract 56 56 rel)
+		(bv-concat 
+		(bv-extract 48 48 rel)
+		(bv-concat 
+		(bv-extract 40 40 rel)
+		(bv-concat 
+		(bv-extract 32 32 rel)
+		(bv-concat 
+		(bv-extract 24 24 rel)
+		(bv-concat 
+		(bv-extract 16 16 rel)
+		(bv-concat 
+		(bv-extract 8 8 rel)
+		(bv-extract 0 0 rel)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+	)
+)
+
+
+ (assert (= 0b0000000000000000000000000000000000000000000000000000000000000001 (jmlrel-inverse 0b1000000000000000000000000000000000000000000000000000000000000000)) )
+
+(check)

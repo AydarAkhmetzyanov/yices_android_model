@@ -1,0 +1,139 @@
+(define-type jmlset (bitvector 8))
+
+;00111111 
+;87654321
+
+(define set-bv0::(bitvector 8) (mk-bv 8 0))
+(define set-bv1::(bitvector 8) (mk-bv 8 1))
+(define set-bv2::(bitvector 8) (bv-shift-left0 set-bv1 1))
+(define set-bv3::(bitvector 8) (bv-shift-left0 set-bv1 2))
+(define set-bv4::(bitvector 8) (bv-shift-left0 set-bv1 3))
+(define set-bv5::(bitvector 8) (bv-shift-left0 set-bv1 4))
+(define set-bv6::(bitvector 8) (bv-shift-left0 set-bv1 5))
+(define set-bv7::(bitvector 8) (bv-shift-left0 set-bv1 6))
+(define set-bv8::(bitvector 8) (bv-shift-left0 set-bv1 7))
+
+;fixed
+(define jmlset-singleton::(-> int jmlset)
+  (lambda(a::int)
+    (if (= a 0) set-bv0
+    (if (= a 1) set-bv1
+	(if (= a 2) set-bv2
+	(if (= a 3) set-bv3
+	(if (= a 4) set-bv4
+	(if (= a 5) set-bv5
+	(if (= a 6) set-bv6
+	(if (= a 7) set-bv7
+	(if (= a 8) set-bv8
+	set-bv0 )))))))))))
+	
+;a) isEqual (boolean function that compares two sets for equality) maybe rewrite (= set1 set2)
+;(define jmlset-is-equal::(-> jmlset jmlset bool)
+(define jmlset-is-equal::(-> jmlset jmlset bool)
+	(lambda(s1::jmlset s2::jmlset)( = s1 s2 ) )
+)
+
+;test: create two sets and test if the same sets are equal and different singleton set differs
+(define set1::jmlset (jmlset-singleton 1 ) ) ;{1}
+(define set2::jmlset (jmlset-singleton 2 ) ) ;{2}
+(assert (= (jmlset-is-equal set1 set2) false))
+(define set3::jmlset (jmlset-singleton 1 ) ) ;{1}
+(assert (= (jmlset-is-equal set1 set3) true))
+(define equalsettest3::jmlset (mk-bv 8 255))
+(define equalsettest4::jmlset (mk-bv 8 255))
+(assert (= (jmlset-is-equal equalsettest3 equalsettest4) true))
+
+;e) jml-add-element (adds an element to a set)
+(define jml-add-element::(-> jmlset int jmlset)
+	( lambda
+		(s::jmlset x::int) (bv-or s (jmlset-singleton x))
+	) 
+)
+
+;test: add members to set and test equality
+(define set4::jmlset (jml-add-element set3 2 ) ) ;{1,2}
+(assert (= (jmlset-is-equal set1 set4) false))
+(define set5::jmlset (jml-add-element set2 1 ) ) ;{1,2}
+(assert (= (jmlset-is-equal set5 set4) true))
+(define setfull::jmlset (jml-add-element equalsettest4 1 ) ) ;add existing element
+(assert (= (jmlset-is-equal setfull equalsettest4) true))
+
+;f) jml-remove (removes an element from a set)
+(define jml-remove::(-> jmlset int jmlset)
+	( lambda
+		(s::jmlset x::int) (bv-and s (bv-not (jmlset-singleton x)))
+	) 
+)
+
+(define set6::jmlset (jml-remove set2 1 ) ) ;{2}
+(assert (= (jmlset-is-equal set6 set2) true))
+(define fullbut7::jmlset (mk-bv 8 191)) ;without 7
+(assert (= (jmlset-is-equal fullbut7 (jml-remove setfull 7 )) true))
+(define fullbut8::jmlset (mk-bv 8 127)) ;without 8
+(assert (= (jmlset-is-equal fullbut8 (jml-remove setfull 8 )) true))
+
+
+
+(define jmlset-intersection::(-> jmlset jmlset jmlset)
+	( lambda 
+		(s1::jmlset s2::jmlset) (bv-and s1 s2)
+	)
+)
+
+(define set7::jmlset (jmlset-intersection set6 set5 ) ) ;{2}
+(assert (= (jmlset-is-equal set7 set6) true))
+(assert (= (jmlset-is-equal (jmlset-intersection fullbut8 fullbut7 ) (mk-bv 8 63)) true))
+(assert (= (jmlset-is-equal (jmlset-intersection fullbut8 fullbut7 ) (mk-bv 8 64)) false))
+
+;c) jml-union (union of two sets)
+(define jmlset-union::(-> jmlset jmlset jmlset)
+	( lambda 
+		(s1::jmlset s2::jmlset) (bv-or s1 s2)
+	)
+)
+
+(define set8::jmlset (jmlset-singleton 8 ) ) ;{8}
+(define set9::jmlset (jmlset-union set8 set5 ) ) ;{1,2,8}
+(define set10::jmlset (jmlset-union set8 set7 ) ) ;{2,8}
+(define set11::jmlset (jmlset-union set10 set3 ) ) ;{1,2,8}
+(assert (= (jmlset-is-equal set9 set11) true))
+(assert (= (jmlset-is-equal (jmlset-union fullbut8 fullbut7 ) setfull) true))
+(assert (= (jmlset-is-equal (jmlset-union (mk-bv 8 15) (mk-bv 8 240) ) setfull) true))
+
+;d) jml-diff (set difference) as and not
+(define jmlset-difference::(-> jmlset jmlset jmlset)
+	( lambda 
+		(s1::jmlset s2::jmlset) (bv-and s1 (bv-not s2) )
+	)
+)
+
+(define set12::jmlset (jmlset-difference set11 set10 ) ) ;{1}
+(assert (= (jmlset-is-equal set1 set12) true))
+(assert (= (jmlset-is-equal (jmlset-difference setfull (mk-bv 8 240) ) (mk-bv 8 15)) true))
+(assert (= (jmlset-is-equal (jmlset-difference setfull (mk-bv 8 15) ) (mk-bv 8 240) ) true))
+
+
+;b) isSubset (boolean function that compares two sets for inclusion) 
+(define jmlset-is-subset::(-> jmlset jmlset bool)
+	(lambda(subset::jmlset superset::jmlset)
+		( jmlset-is-equal (bv-and subset superset) subset  )
+	)
+)
+
+(assert (= (jmlset-is-subset set8 set9) true))
+(assert (= (jmlset-is-subset (mk-bv 8 15) setfull) true))
+(assert (= (jmlset-is-subset (mk-bv 8 240) setfull) true))
+
+
+;is member of set
+(define jmlset-is-member::(-> jmlset int bool)
+	( lambda
+		(s::jmlset x::int) (jmlset-is-subset (jmlset-singleton x) s)
+	) 
+)
+
+(assert (= (jmlset-is-member set11 8) true))
+(assert (= (jmlset-is-member setfull 7) true))
+(assert (= (jmlset-is-member setfull 5) true))
+
+(check)

@@ -1,0 +1,85 @@
+(define-type jmlset (bitvector 8))
+
+;0b11111111 
+;--87654321
+
+(define set-bv0::(bitvector 8) (mk-bv 8 0))
+(define set-bv1::(bitvector 8) (mk-bv 8 1))
+(define set-bv2::(bitvector 8) (bv-shift-left0 set-bv1 1))
+(define set-bv3::(bitvector 8) (bv-shift-left0 set-bv1 2))
+(define set-bv4::(bitvector 8) (bv-shift-left0 set-bv1 3))
+(define set-bv5::(bitvector 8) (bv-shift-left0 set-bv1 4))
+(define set-bv6::(bitvector 8) (bv-shift-left0 set-bv1 5))
+(define set-bv7::(bitvector 8) (bv-shift-left0 set-bv1 6))
+(define set-bv8::(bitvector 8) (bv-shift-left0 set-bv1 7))
+
+;fixed
+(define jmlset-singleton::(-> int jmlset)
+  (lambda(a::int)
+    (if (= a 0) set-bv0
+    (if (= a 1) set-bv1
+	(if (= a 2) set-bv2
+	(if (= a 3) set-bv3
+	(if (= a 4) set-bv4
+	(if (= a 5) set-bv5
+	(if (= a 6) set-bv6
+	(if (= a 7) set-bv7
+	(if (= a 8) set-bv8
+	set-bv0 )))))))))))
+	
+;a) isEqual (boolean function that compares two sets for equality) maybe rewrite (= set1 set2)
+;(define jmlset-is-equal::(-> jmlset jmlset bool)
+(define jmlset-is-equal::(-> jmlset jmlset bool)
+	(lambda(s1::jmlset s2::jmlset)( = s1 s2 ) )
+)
+
+;e) jml-add-element (adds an element to a set)
+(define jml-add-element::(-> jmlset int jmlset)
+	( lambda
+		(s::jmlset x::int) (bv-or s (jmlset-singleton x))
+	) 
+)
+
+;f) jml-remove (removes an element from a set)
+(define jml-remove::(-> jmlset int jmlset)
+	( lambda
+		(s::jmlset x::int) (bv-and s (bv-not (jmlset-singleton x)))
+	) 
+)
+
+(define jmlset-intersection::(-> jmlset jmlset jmlset)
+	( lambda 
+		(s1::jmlset s2::jmlset) (bv-and s1 s2)
+	)
+)
+
+;c) jml-union (union of two sets)
+(define jmlset-union::(-> jmlset jmlset jmlset)
+	( lambda 
+		(s1::jmlset s2::jmlset) (bv-or s1 s2)
+	)
+)
+
+;d) jml-diff (set difference) as and not
+(define jmlset-difference::(-> jmlset jmlset jmlset)
+	( lambda 
+		(s1::jmlset s2::jmlset) (bv-and s1 (bv-not s2) )
+	)
+)
+
+
+;b) isSubset (boolean function that compares two sets for inclusion) 
+(define jmlset-is-subset::(-> jmlset jmlset bool)
+	(lambda(subset::jmlset superset::jmlset)
+		( jmlset-is-equal (bv-and subset superset) subset  )
+	)
+)
+
+;is member of set
+(define jmlset-is-member::(-> jmlset int bool)
+	( lambda
+		(s::jmlset x::int) (jmlset-is-subset (jmlset-singleton x) s)
+	) 
+)
+
+(check)

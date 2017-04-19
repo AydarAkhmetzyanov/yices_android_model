@@ -1,0 +1,1114 @@
+(define-type jmlset (bitvector 8))
+
+;00111111 
+;87654321
+
+(define set-bv0::(bitvector 8) (mk-bv 8 0))
+(define set-bv1::(bitvector 8) (mk-bv 8 1))
+(define set-bv2::(bitvector 8) (bv-shift-left0 set-bv1 1))
+(define set-bv3::(bitvector 8) (bv-shift-left0 set-bv1 2))
+(define set-bv4::(bitvector 8) (bv-shift-left0 set-bv1 3))
+(define set-bv5::(bitvector 8) (bv-shift-left0 set-bv1 4))
+(define set-bv6::(bitvector 8) (bv-shift-left0 set-bv1 5))
+(define set-bv7::(bitvector 8) (bv-shift-left0 set-bv1 6))
+(define set-bv8::(bitvector 8) (bv-shift-left0 set-bv1 7))
+
+;fixed
+(define jmlset-singleton::(-> int jmlset)
+  (lambda(a::int)
+    (if (= a 0) set-bv0
+    (if (= a 1) set-bv1
+	(if (= a 2) set-bv2
+	(if (= a 3) set-bv3
+	(if (= a 4) set-bv4
+	(if (= a 5) set-bv5
+	(if (= a 6) set-bv6
+	(if (= a 7) set-bv7
+	(if (= a 8) set-bv8
+	set-bv0 )))))))))))
+	
+;a) isEqual (boolean function that compares two sets for equality) maybe rewrite (= set1 set2)
+;(define jmlset-is-equal::(-> jmlset jmlset bool)
+(define jmlset-is-equal::(-> jmlset jmlset bool)
+	(lambda(s1::jmlset s2::jmlset)( = s1 s2 ) )
+)
+
+;e) jml-add-element (adds an element to a set)
+(define jml-add-element::(-> jmlset int jmlset)
+	( lambda
+		(s::jmlset x::int) (bv-or s (jmlset-singleton x))
+	) 
+)
+
+;f) jml-remove (removes an element from a set)
+(define jml-remove::(-> jmlset int jmlset)
+	( lambda
+		(s::jmlset x::int) (bv-and s (bv-not (jmlset-singleton x)))
+	) 
+)
+
+(define jmlset-intersection::(-> jmlset jmlset jmlset)
+	( lambda 
+		(s1::jmlset s2::jmlset) (bv-and s1 s2)
+	)
+)
+
+;c) jml-union (union of two sets)
+(define jmlset-union::(-> jmlset jmlset jmlset)
+	( lambda 
+		(s1::jmlset s2::jmlset) (bv-or s1 s2)
+	)
+)
+
+;d) jml-diff (set difference) as and not
+(define jmlset-difference::(-> jmlset jmlset jmlset)
+	( lambda 
+		(s1::jmlset s2::jmlset) (bv-and s1 (bv-not s2) )
+	)
+)
+
+
+;b) isSubset (boolean function that compares two sets for inclusion) 
+(define jmlset-is-subset::(-> jmlset jmlset bool)
+	(lambda(subset::jmlset superset::jmlset)
+		( jmlset-is-equal (bv-and subset superset) subset  )
+	)
+)
+
+;is member of set
+(define jmlset-is-member::(-> jmlset int bool)
+	( lambda
+		(s::jmlset x::int) (jmlset-is-subset (jmlset-singleton x) s)
+	) 
+)
+
+
+
+
+(define-type jmlrel (bitvector 64))
+
+(define testrelation::jmlrel  0b1100000000000000000000000000000000000000000000000000000000000000 ) ; 1->8,7
+(define testrelation2inverse::jmlrel 0b0000000000000000000000000000000000000000000000100000000100000001 ) ; 8,7->1;6->2
+(define testrelation3::jmlrel 0b0000000000100000000000000000000000000000000000000000000000000000 ) ; 2->6
+(define testrelation2::jmlrel 0b1100000000100000000000000000000000000000000000000000000000000000 ) ; 1->8,7;2->6    
+
+
+
+(define testset::jmlset 0b00000101 ) ;{1,3}
+(define testset2::jmlset 0b00000110 ) ;{2,3}
+(define testset3::jmlset 0b00011110 ) ;{2,3,4,5}
+
+(define jmlrel-get-range::(-> jmlrel jmlset)
+	(lambda (r::jmlrel)
+	(jmlset-union
+	(bv-extract 7 0 r)
+	(jmlset-union
+	(bv-extract 15 8 r)
+	(jmlset-union
+	(bv-extract 23 16 r)
+	(jmlset-union
+	(bv-extract 31 24 r)
+	(jmlset-union
+	(bv-extract 39 32 r)
+	(jmlset-union
+	(bv-extract 47 40 r)
+	(jmlset-union
+	(bv-extract 55 48 r)
+	(bv-extract 63 56 r) )))))))))
+
+
+;makerel from set, part of application of relation to a set
+(define jmlrel-makerel::(-> jmlset jmlrel )
+	( lambda 
+		(set1::jmlset) 
+		(bv-concat 
+			(bv-concat 
+				(bv-concat 
+					(bv-concat 
+							(bv-concat 
+								(bv-concat 
+									(bv-concat 
+										(if (= (bv-extract 0 0 set1) 0b1) 0b11111111 0b00000000 )  
+										(if (= (bv-extract 1 1 set1) 0b1) 0b11111111 0b00000000 ) 
+									) 
+									(if (= (bv-extract 2 2 set1) 0b1) 0b11111111 0b00000000 ) 
+								) 
+								(if (= (bv-extract 3 3 set1) 0b1) 0b11111111 0b00000000 ) 
+							) 
+							(if (= (bv-extract 4 4 set1) 0b1) 0b11111111 0b00000000 ) 
+						) 
+					(if (= (bv-extract 5 5 set1) 0b1) 0b11111111 0b00000000 ) 
+				)
+				(if (= (bv-extract 6 6 set1) 0b1) 0b11111111 0b00000000 ) 
+			) 
+			(if (= (bv-extract 7 7 set1) 0b1) 0b11111111 0b00000000 ) 
+		)
+	)
+)
+
+(assert (= 0b0000000000000000000000000000000000000000111111110000000011111111 (jmlrel-makerel 0b10100000)) )
+
+ ;domain-restriction by a set
+ (define jmlrel-domain-restriction::(-> jmlrel jmlset jmlrel)
+ 	( lambda 
+		(rel::jmlrel set::jmlset)  (bv-and (jmlrel-makerel set) rel)
+	)
+ )
+ (assert (= 0b1111111100000000111111110000000000000000000000000000000000000000 (jmlrel-domain-restriction 0b1111111111111111111111110000000000000000000000000000000000000000 0b11111101)) )
+ (assert (= 0b1111111100000000111111110000000000000000000000000000000000000000 (jmlrel-domain-restriction 0b1111111111111111111111110000000000000000000000000000000000000000 0b00001101)) )
+ (assert (= 0b0000000000000000000000000000000000000000000000000000000000000000 (jmlrel-domain-restriction 0b1111111111111111111111110000000000000000000000000000000000000000 0b00000000)) )
+ 
+ 
+ 
+ ;application-of-a-relation-to-a-set
+ (define jmlrel-application::(-> jmlrel jmlset jmlset)
+ 	( lambda 
+		(rel::jmlrel set::jmlset) (jmlrel-get-range (jmlrel-domain-restriction rel set))
+	)
+ ) 
+
+(assert (= 0b1111111100000000111111110000000000000000000000000000000000000000 (jmlrel-makerel testset)) )
+(assert (= 0b1100000000000000000000000000000000000000000000000000000000000000 (bv-and testrelation (jmlrel-makerel testset))) )
+(assert (= 0b11000000 (jmlrel-application testrelation testset)) )
+(assert (= 0b11000000 (jmlrel-application testrelation2 testset)) )
+(assert (= 0b00000000 (jmlrel-application testrelation3 testset)) )
+(assert (= 0b00100000 (jmlrel-application testrelation2 testset2)) )
+
+;(define jmlrel-access::(-> (tuple int int) int)
+;	(lambda (p::(tuple int int)) 
+;		(+ (* 8  (select p 1)) (select p 2)) ))
+
+
+    
+;makerel 1 to 1 rel from tuple
+(define jmlrel-singleton::(-> (tuple int int) jmlrel )
+	( lambda 
+		(set1::(tuple int int)) 
+		(bv-concat 
+			(bv-concat 
+				(bv-concat 
+					(bv-concat 
+							(bv-concat 
+								(bv-concat 
+									(bv-concat 
+										(if (= (select set1 1) 1) (jmlset-singleton (select set1 2)) 0b00000000 )  
+										(if (= (select set1 1) 2) (jmlset-singleton (select set1 2)) 0b00000000 ) 
+									) 
+									(if (= (select set1 1) 3) (jmlset-singleton (select set1 2)) 0b00000000 ) 
+								) 
+								(if (= (select set1 1) 4) (jmlset-singleton (select set1 2)) 0b00000000 ) 
+							) 
+							(if (= (select set1 1) 5) (jmlset-singleton (select set1 2)) 0b00000000 ) 
+						) 
+					(if (= (select set1 1) 6) (jmlset-singleton (select set1 2)) 0b00000000 ) 
+				)
+				(if (= (select set1 1) 7) (jmlset-singleton (select set1 2)) 0b00000000 ) 
+			) 
+			(if (= (select set1 1) 8) (jmlset-singleton (select set1 2)) 0b00000000 ) 
+		)
+	)
+)
+
+(assert (= testrelation3 (jmlrel-singleton (mk-tuple 2 6) )) ) ;2->6
+
+;union
+(define jmlrel-union::(-> jmlrel jmlrel jmlrel)
+	( lambda 
+		(s1::jmlrel s2::jmlrel) (bv-or s1 s2)
+	)
+)
+
+(assert (= (jmlrel-union testrelation3 testrelation) testrelation2) )
+(assert (= (= (jmlrel-union testrelation3 testrelation) testrelation) false ) )
+(assert (= (jmlrel-union testrelation testrelation2) testrelation2) )
+
+
+;intersection
+(define jmlrel-intersection::(-> jmlrel jmlrel jmlrel)
+	( lambda 
+		(s1::jmlrel s2::jmlrel) (bv-and s1 s2)
+	)
+)
+
+(assert (= (jmlrel-intersection testrelation2 testrelation) 0b1100000000000000000000000000000000000000000000000000000000000000) )
+(assert (= (jmlrel-intersection testrelation2 testrelation3) testrelation3) )
+(assert (= (jmlrel-intersection testrelation testrelation3) 0b0000000000000000000000000000000000000000000000000000000000000000) )
+ 
+ 
+ ;domain-subtraction
+  (define jmlrel-domain-subtraction::(-> jmlrel jmlset jmlrel)
+ 	( lambda 
+		(rel::jmlrel set::jmlset)   (bv-and (jmlrel-makerel (bv-not set)) rel) 
+	)
+ )
+ (assert (= 0b1111111100000000111111110000000000000000000000000000000000000000 (jmlrel-domain-subtraction 0b1111111111111111111111110000000000000000000000000000000000000000 0b11100010)) )
+ (assert (= 0b1111111100000000111111110000000000000000000000000000000000000000 (jmlrel-domain-subtraction 0b1111111111111111111111110000000000000000000000000000000000000000 0b11110010)) )
+ (assert (= 0b0000000000000000000000000000000000000000000000000000000000000000 (jmlrel-domain-subtraction 0b1111111111111111111111110000000000000000000000000000000000000000 0b11111111)) )
+ 
+
+(define jmlrel-makerelforrange::(-> jmlset jmlrel )
+	( lambda 
+		(set1::jmlset) 
+		(bv-concat 
+			set1
+			(bv-concat 
+				set1
+				(bv-concat 
+					set1
+					(bv-concat 
+						set1
+						(bv-concat 
+							set1
+							(bv-concat 
+								set1
+								(bv-concat 
+									set1
+									set1
+								)
+							)
+						)
+					)
+				)
+			)
+		)
+	)
+)
+ 
+;range-restriction
+ (define jmlrel-range-restriction::(-> jmlrel jmlset jmlrel)
+ 	( lambda 
+		(rel::jmlrel set::jmlset)  (bv-and (jmlrel-makerelforrange set) rel)
+	)
+ )
+ (assert (= 0b1111110111111101111111010000000000000000000000000000000000000000 (jmlrel-range-restriction 0b1111111111111111111111110000000000000000000000000000000000000000 0b11111101)) )
+  (assert (= 0b1111111111111111111111110000000000000000000000000000000000000000 (jmlrel-range-restriction 0b1111111111111111111111110000000000000000000000000000000000000000 0b11111111)) )
+   (assert (= 0b0000111100001111000011110000000000000000000000000000000000000000 (jmlrel-range-restriction 0b1111111111111111111111110000000000000000000000000000000000000000 0b00001111)) )
+   
+ ;range-subtraction
+ (define jmlrel-range-subtraction::(-> jmlrel jmlset jmlrel)
+ 	( lambda 
+		(rel::jmlrel set::jmlset)  (bv-and (jmlrel-makerelforrange (bv-not set)) rel)
+	)
+ )
+ (assert (= 0b1111110111111101111111010000000000000000000000000000000000000000 (jmlrel-range-subtraction 0b1111111111111111111111110000000000000000000000000000000000000000 0b00000010)) )
+  (assert (= 0b1111111111111111111111110000000000000000000000000000000000000000 (jmlrel-range-subtraction 0b1111111111111111111111110000000000000000000000000000000000000000 0b00000000)) )
+   (assert (= 0b0000111100001111000011110000000000000000000000000000000000000000 (jmlrel-range-subtraction 0b1111111111111111111111110000000000000000000000000000000000000000 0b11110000)) )
+   
+
+ ;inverse-relation
+ ;mapping of elements
+;63	55	47	39	31	23	15	7
+;62	54	46	38	30	22	14	6
+;61	53	45	37	29	21	13	5
+;60	52	44	36	28	20	12	4
+;59	51	43	35	27	19	11	3
+;58	50	42	34	26	18	10	2
+;57	49	41	33	25	17	9	1
+;56	48	40	32	24	16	8	0
+ 
+(define jmlrel-inverse::(-> jmlrel jmlrel )
+	( lambda 
+		(rel::jmlrel) 
+		(bv-concat 
+		(bv-extract 0 0 rel)
+		(bv-concat 
+		(bv-extract 8 8 rel)
+		(bv-concat 
+		(bv-extract 16 16 rel)
+		(bv-concat 
+		(bv-extract 24 24 rel)
+		(bv-concat 
+		(bv-extract 32 32 rel)
+		(bv-concat 
+		(bv-extract 40 40 rel)
+		(bv-concat 
+		(bv-extract 48 48 rel)
+		(bv-concat 
+		(bv-extract 56 56 rel)
+		(bv-concat 
+		(bv-extract 1 1 rel)
+		(bv-concat 
+		(bv-extract 9 9 rel)
+		(bv-concat 
+		(bv-extract 17 17 rel)
+		(bv-concat 
+		(bv-extract 25 25 rel)
+		(bv-concat 
+		(bv-extract 33 33 rel)
+		(bv-concat 
+		(bv-extract 41 41 rel)
+		(bv-concat 
+		(bv-extract 49 49 rel)
+		(bv-concat 
+		(bv-extract 57 57 rel)
+		(bv-concat 
+		(bv-extract 2 2 rel)
+		(bv-concat 
+		(bv-extract 10 10 rel)
+		(bv-concat 
+		(bv-extract 18 18 rel)
+		(bv-concat 
+		(bv-extract 26 26 rel)
+		(bv-concat 
+		(bv-extract 34 34 rel)
+		(bv-concat 
+		(bv-extract 42 42 rel)
+		(bv-concat 
+		(bv-extract 50 50 rel)
+		(bv-concat 
+		(bv-extract 58 58 rel)
+		(bv-concat 
+		(bv-extract 3 3 rel)
+		(bv-concat 
+		(bv-extract 11 11 rel)
+		(bv-concat 
+		(bv-extract 19 19 rel)
+		(bv-concat 
+		(bv-extract 27 27 rel)
+		(bv-concat 
+		(bv-extract 35 35 rel)
+		(bv-concat 
+		(bv-extract 43 43 rel)
+		(bv-concat 
+		(bv-extract 51 51 rel)
+		(bv-concat 
+		(bv-extract 59 59 rel)
+		(bv-concat 
+		(bv-extract 4 4 rel)
+		(bv-concat 
+		(bv-extract 12 12 rel)
+		(bv-concat 
+		(bv-extract 20 20 rel)
+		(bv-concat 
+		(bv-extract 28 28 rel)
+		(bv-concat 
+		(bv-extract 36 36 rel)
+		(bv-concat 
+		(bv-extract 44 44 rel)
+		(bv-concat 
+		(bv-extract 52 52 rel)
+		(bv-concat 
+		(bv-extract 60 60 rel)
+		(bv-concat 
+		(bv-extract 5 5 rel)
+		(bv-concat 
+		(bv-extract 13 13 rel)
+		(bv-concat 
+		(bv-extract 21 21 rel)
+		(bv-concat 
+		(bv-extract 29 29 rel)
+		(bv-concat 
+		(bv-extract 37 37 rel)
+		(bv-concat 
+		(bv-extract 45 45 rel)
+		(bv-concat 
+		(bv-extract 53 53 rel)
+		(bv-concat 
+		(bv-extract 61 61 rel)
+		(bv-concat 
+		(bv-extract 6 6 rel)
+		(bv-concat 
+		(bv-extract 14 14 rel)
+		(bv-concat 
+		(bv-extract 22 22 rel)
+		(bv-concat 
+		(bv-extract 30 30 rel)
+		(bv-concat 
+		(bv-extract 38 38 rel)
+		(bv-concat 
+		(bv-extract 46 46 rel)
+		(bv-concat 
+		(bv-extract 54 54 rel)
+		(bv-concat 
+		(bv-extract 62 62 rel)
+		(bv-concat 
+		(bv-extract 7 7 rel)
+		(bv-concat 
+		(bv-extract 15 15 rel)
+		(bv-concat 
+		(bv-extract 23 23 rel)
+		(bv-concat 
+		(bv-extract 31 31 rel)
+		(bv-concat 
+		(bv-extract 39 39 rel)
+		(bv-concat 
+		(bv-extract 47 47 rel)
+		(bv-concat 
+		(bv-extract 55 55 rel)
+		(bv-extract 63 63 rel)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+		)
+	)
+)
+ 
+ (assert (= testrelation2 (jmlrel-inverse testrelation2inverse)) )
+ (assert (= testrelation2inverse (jmlrel-inverse (jmlrel-inverse testrelation2inverse))) )
+ (assert (= 0b1000000000000000000000000000000000000000000000100000000100000001 (jmlrel-inverse 0b1100000000100000000000000000000000000000000000000000000000000001)) )
+ 
+
+
+(define jmlrel-get-domain::(-> jmlrel jmlset)
+	(lambda (rel::jmlrel)
+		(bv-concat 
+			(bv-or (bv-extract 7 7 rel)
+			(bv-or (bv-extract 6 6 rel)
+			(bv-or (bv-extract 5 5 rel)
+			(bv-or (bv-extract 4 4 rel)
+			(bv-or (bv-extract 3 3 rel)
+			(bv-or (bv-extract 2 2 rel)
+			(bv-or (bv-extract 1 1 rel)
+			(bv-extract 0 0 rel)
+			)
+			)
+			)
+			)
+			)
+			)
+			)
+			
+			(bv-concat 
+				(bv-or (bv-extract 15 15 rel)
+				(bv-or (bv-extract 14 14 rel)
+				(bv-or (bv-extract 13 13 rel)
+				(bv-or (bv-extract 12 12 rel)
+				(bv-or (bv-extract 11 11 rel)
+				(bv-or (bv-extract 10 10 rel)
+				(bv-or (bv-extract 9 9 rel)
+				(bv-extract 8 8 rel)
+				)
+				)
+				)
+				)
+				)
+				)
+				)
+				
+				(bv-concat 
+					(bv-or (bv-extract 23 23 rel)
+					(bv-or (bv-extract 22 22 rel)
+					(bv-or (bv-extract 21 21 rel)
+					(bv-or (bv-extract 20 20 rel)
+					(bv-or (bv-extract 19 19 rel)
+					(bv-or (bv-extract 18 18 rel)
+					(bv-or (bv-extract 17 17 rel)
+					(bv-extract 16 16 rel)
+					)
+					)
+					)
+					)
+					)
+					)
+					)
+					
+					(bv-concat 
+						(bv-or (bv-extract 31 31 rel)
+						(bv-or (bv-extract 30 30 rel)
+						(bv-or (bv-extract 29 29 rel)
+						(bv-or (bv-extract 28 28 rel)
+						(bv-or (bv-extract 27 27 rel)
+						(bv-or (bv-extract 26 26 rel)
+						(bv-or (bv-extract 25 25 rel)
+						(bv-extract 24 24 rel)
+						)
+						)
+						)
+						)
+						)
+						)
+						)
+						
+						(bv-concat 
+							(bv-or (bv-extract 32 32 rel)
+							(bv-or (bv-extract 33 33 rel)
+							(bv-or (bv-extract 34 34 rel)
+							(bv-or (bv-extract 35 35 rel)
+							(bv-or (bv-extract 36 36 rel)
+							(bv-or (bv-extract 37 37 rel)
+							(bv-or (bv-extract 38 38 rel)
+							(bv-extract 39 39 rel)
+							)
+							)
+							)
+							)
+							)
+							)
+							)
+							
+							(bv-concat 
+								(bv-or (bv-extract 40 40 rel)
+								(bv-or (bv-extract 41 41 rel)
+								(bv-or (bv-extract 42 42 rel)
+								(bv-or (bv-extract 43 43 rel)
+								(bv-or (bv-extract 44 44 rel)
+								(bv-or (bv-extract 45 45 rel)
+								(bv-or (bv-extract 46 46 rel)
+								(bv-extract 47 47 rel)
+								)
+								)
+								)
+								)
+								)
+								)
+								)
+								
+								(bv-concat 
+									(bv-or (bv-extract 48 48 rel)
+									(bv-or (bv-extract 49 49 rel)
+									(bv-or (bv-extract 50 50 rel)
+									(bv-or (bv-extract 51 51 rel)
+									(bv-or (bv-extract 52 52 rel)
+									(bv-or (bv-extract 53 53 rel)
+									(bv-or (bv-extract 54 54 rel)
+									(bv-extract 55 55 rel)
+									)
+									)
+									)
+									)
+									)
+									)
+									)
+									
+									(bv-or (bv-extract 56 56 rel)
+									(bv-or (bv-extract 58 58 rel)
+									(bv-or (bv-extract 59 59 rel)
+									(bv-or (bv-extract 60 60 rel)
+									(bv-or (bv-extract 61 61 rel)
+									(bv-or (bv-extract 62 62 rel)
+									(bv-or (bv-extract 63 63 rel)
+									(bv-extract 57 57 rel)
+									)
+									)
+									)
+									)
+									)
+									)
+									)
+								)	
+							)	
+						)	
+					)	
+				)	
+			)	
+		)
+	)
+)
+ (assert (= 0b11000001 (jmlrel-get-domain 0b1000000000000000000000000000000000000000000000000000001000000001  )) )
+
+ ;relational-overriding https://books.google.ru/books?id=u4a4BAAAQBAJ&pg=PA13&dq=define:relational+overriding&hl=ru&sa=X&ved=0ahUKEwiBs93vtdvRAhWkYpoKHdAfB6sQ6AEINDAD#v=onepage&q=define%3Arelational%20overriding&f=false
+;rel1 U (subtractdomain(rel2,domain(rel1)) )
+
+ (define jmlrel-overriding::(-> jmlrel jmlrel jmlrel)
+ 	( lambda 
+		(rel1::jmlrel rel2::jmlrel)  (bv-or (jmlrel-domain-subtraction rel2 (jmlrel-get-domain rel1) ) rel1)
+	)
+ )
+ 
+ 					(assert (= 0b1111111111111111111111110000000000000000000000000000000000011111 
+ 			(jmlrel-overriding 0b1111111111111111111111110000000000000000000000000000000000000000 
+ 							   0b0000000000000000000000000000000000000000000000000000000000011111)) )
+ 					(assert (= 0b1111111111111111111111111111111111111111111111111111111111111110
+ 			(jmlrel-overriding 0b1111111111111111111111111111111111111111111111111111111111111110 
+ 							   0b1111111111111111111111111111111111111111111111111111111111111100)) )
+ 					(assert (= 0b1111111111111111111111110000000000000000000000000000000000000001 
+ 			(jmlrel-overriding 0b1111111111111111111111110000000000000000000000000000000000000001 
+ 							   0b0000000000000000000000000000000000000000000000000000000000011111)) )
+
+
+(define forward-composition::(-> jmlrel jmlrel jmlset jmlset)
+ (lambda (f::jmlrel g::jmlrel s::jmlset)
+	(jmlrel-application g (jmlrel-application f s)) ) )
+
+(define jmlrel-is-subset::(-> jmlrel jmlrel bool)
+	(lambda(subset::jmlrel superset::jmlrel)
+		( = (bv-and subset superset) subset  )
+	)
+)
+
+
+;android permissions model  
+
+(define-type android-type-permission (subtype (v::int) (and (> v 0) (<= v 8) ) ))
+(define-type android-type-protectionLevel int )
+
+(define android-permission-protectionLevel-normal::int 0) ;default level
+(define android-permission-protectionLevel-dangerous::int 1)
+(define android-permission-protectionLevel-signature::int 2)
+(define android-permission-protectionLevel-signatureOrSystem::int 3)
+
+(define-type android-permission  (record
+	label::android-type-permission
+	protectionLevel::android-type-protectionLevel
+))
+
+(define-type android-component)
+
+(define-type android-type-component (subtype (v::int) (and (> v 0) (<= v 8) ) ))
+(define-type android-component-activity (record
+	name::android-type-component
+	exported::bool
+	permission::android-permission
+))
+(define-type android-component-content-provider (record
+	name::android-type-component
+	exported::bool
+	readPermission::android-permission
+	writePermission::android-permission
+	grantUriPermissions::bool ;URI permission access
+	
+))
+(define-type android-component-broadcast-receiver (record
+	name::android-type-component
+	exported::bool
+	permission::android-permission
+))
+(define-type android-component-service (record
+	name::android-type-component
+	exported::bool
+	permission::android-permission
+))
+
+
+(define-type android-application-permission-set jmlset)
+(define-type android-application-component-set jmlset)
+
+(define-type android-type-application (subtype (v::int) (and (> v 0) (<= v 8) ) ))
+(define-type android-application-set jmlset)
+
+
+(define-type android-application-mainfest  (record
+	components::android-application-component-set
+	permissions::android-application-permission-set
+	uses-permission::android-application-permission-set
+))
+
+(define-type android-application  (record
+	label::android-type-application
+	mainfest::android-application-mainfest
+))
+
+
+
+(define-type android-type-action (subtype (v::int) (and (> v 0) (<= v 4) ) ))
+(define-type android-intent-data (subtype (v::int) (and (> v 0) (<= v 8) ) ))
+
+(define-type android-intent (record
+	context::android-application
+	component::android-component
+	action::android-type-action
+	data::android-intent-data
+	FLAG_GRANT_READ_URI_PERMISSION::bool
+	FLAG_GRANT_WRITE_URI_PERMISSION::bool
+))
+
+(define-type android-pending-intent (record
+	intent::android-intent
+))
+
+(define-type android-platform-state (record
+	security::bool ;security status
+	applications::android-application-set
+))
+
+;model-state-machine
+
+;add application to platform
+(define android-add-application::(-> android-platform-state android-application android-platform-state)
+	( lambda
+		(state::android-platform-state app::android-application) (mk-record 
+			security::(select state security)
+			applications::(jmlset-union 
+				(select state applications) 
+				(select app label)
+			)
+		)
+	) 
+)
+
+;add activity to application
+(define android-add-component-activity::(-> android-application android-component-activity android-application)
+	( lambda
+		(app::android-application component::android-component-activity) (mk-record 
+			label::(select app label)
+			mainfest::(mk-record 
+				components::(jmlset-union 
+					(select component name) 
+					(select (select app mainfest) components)
+				)
+				permissions::(jmlset-union 
+					(select (select component permission) label)
+					(select (select app mainfest) permissions)
+				)
+				uses-permission::(select (select app mainfest) uses-permission)
+			)
+		)
+	)
+)
+
+;add provider to application
+(define android-add-component-content-provider::(-> android-application android-component-activity android-application)
+	( lambda
+		(app::android-application component::android-component-content-provider) (mk-record 
+			label::(select app label)
+			mainfest::(mk-record 
+				components::(jmlset-union 
+					(select component name) 
+					(select (select app mainfest) components)
+				)
+				permissions::(jmlset-union 
+					(jmlset-union 
+						(select (select component writePermission) label)
+						(select (select app mainfest) permissions)
+					)
+					(select (select component readPermission) label)
+				)
+				uses-permission::(select (select app mainfest) uses-permission)
+			)
+		)
+	)
+)
+
+;add receiver to application
+(define android-add-component-broadcast-receiver::(-> android-application android-component-activity android-application)
+	( lambda
+		(app::android-application component::android-component-broadcast-receiver) (mk-record 
+			label::(select app label)
+			mainfest::(mk-record 
+				components::0b00000011
+				permissions::(jmlset-union 
+					(select (select component permission) label)
+					(select (select app mainfest) permissions)
+				)
+				uses-permission::(select (select app mainfest) uses-permission)
+			)
+		)
+	)
+)
+
+;add service to application
+(define android-add-component-service::(-> android-application android-component-activity android-application)
+	( lambda
+		(app::android-application component::android-component-service) (mk-record 
+			label::(select app label)
+			mainfest::(mk-record 
+				components::(jmlset-union 
+					(select component name) 
+					(select (select app mainfest) components)
+				)
+				permissions::(jmlset-union 
+					(select (select component permission) label)
+					(select (select app mainfest) permissions)
+				)
+				uses-permission::(select (select app mainfest) uses-permission)
+			)
+		)
+	)
+)
+
+;add permission to application
+(define android-add-uses-permission::(-> android-application android-permission android-application)
+	( lambda 
+		(app::android-application permission::android-permission) (mk-record 
+			label::(select app label)
+			mainfest::(mk-record 
+				components::(select (select app mainfest) components)
+				permissions::(select (select app mainfest) components)
+				uses-permission::(jml-add-element
+					(select (select app mainfest) uses-permission)
+					(select permission label)
+				)
+			)
+		)
+	)
+)
+
+
+;----------------
+;model definition
+;----------------
+
+(define state0::android-platform-state (mk-record 
+	security::true
+	applications::(mk-bv 8 0)
+))
+
+;define applications
+(define application-FriendTracker::int 1)
+(define application-FriendTracker-state0::android-application (mk-record 
+	label::application-FriendTracker
+	mainfest::(mk-record 
+		components::(mk-bv 8 0)
+		permissions::(mk-bv 8 0)
+		uses-permission::(mk-bv 8 0)
+	)
+))
+;add application to android platform state
+(define state1::android-platform-state (android-add-application state0 application-FriendTracker-state0))
+;define components 
+(define ACTIVITY-FriendTrackerControl::android-type-component 1)
+(define PERMISSION-FriendTrackerControl::android-type-permission 1)
+(define ACTIVITY-FriendTrackerControl-state0::android-component-activity (mk-record 
+	name::ACTIVITY-FriendTrackerControl
+	exported::false
+	permission::(mk-record
+		label::PERMISSION-FriendTrackerControl
+		permission-level::android-permission-protectionLevel-normal
+	)
+))
+(define PROVIDER-FriendProvider::android-type-component 2)
+(define PERMISSION-FriendProvider-readPermission::android-type-permission 2)
+(define PERMISSION-FriendProvider-writePermission::android-type-permission 3)
+(define PROVIDER-FriendProvider-state0::android-component-content-provider (mk-record 
+	name::PROVIDER-FriendProvider
+	exported::true
+	readPermission::(mk-record
+		label::PERMISSION-FriendProvider-readPermission
+		permission-level::android-permission-protectionLevel-normal
+	)
+	writePermission::(mk-record
+		label::PERMISSION-FriendProvider-writePermission
+		permission-level::android-permission-protectionLevel-normal
+	)
+	grantUriPermissions::true
+))
+;add components to applications
+(define application-FriendTracker-state1::android-application (android-add-component-activity application-FriendTracker-state0 ACTIVITY-FriendTrackerControl-state0 ))
+(define application-FriendTracker-state2::android-application (android-add-component-content-provider application-FriendTracker-state1 PROVIDER-FriendProvider-state0 ))
+
+;add uses permission to app
+(define application-FriendTracker-state3::android-application (android-add-uses-permission application-FriendTracker-state2 (select ACTIVITY-FriendTrackerControl-state0  permission) ))
+(define application-FriendTracker-state4::android-application (android-add-uses-permission application-FriendTracker-state3 (select PROVIDER-FriendProvider-state0 readPermission) ))
+(define application-FriendTracker-state5::android-application (android-add-uses-permission application-FriendTracker-state4 (select PROVIDER-FriendProvider-state0 writePermission) ))
+
+;TODO check state5
+(define componentlist::jmlset 
+	(select
+		(select
+			application-FriendTracker-state1
+			mainfest	
+		)
+		components
+	)
+)
+(assert (= 
+	componentlist
+	0b00000011
+))
+
+(define application-FriendViewer::int 2)
+(define application-FriendViewer-state0::android-application (mk-record 
+	label::application-FriendViewer
+	mainfest::(mk-record 
+		components::(mk-bv 8 0)
+		permissions::(mk-bv 8 0)
+		uses-permission::(mk-bv 8 0)
+	)
+))
+;add application to android platform state
+(define state2::android-platform-state (android-add-application state1 application-FriendViewer-state0))
+
+
+;-------------------------
+;machine-execution methods
+;-------------------------
+
+
+;checking permission
+
+;Activity permissions (applied to the <activity> tag) restrict who can start the associated activity. 
+;The permission is checked during Context.startActivity() and Activity.startActivityForResult(); 
+;startActivity() ;todo exported check!!!!!!!!!!
+(define android-startActivity::(-> android-platform-state android-intent android-platform-state)
+ (lambda (initial-state::android-platform-state intent::android-intent) (mk-record 
+			security::(if 
+				(select 
+					(select
+						intent
+						component
+					)
+					exported
+				)
+				(jmlset-is-member
+					(select ;from mainfest
+						(select ;from context
+							(select intent context) 
+							mainfest
+						)
+						uses-permission
+					)
+					(select 
+						(select 
+							(select
+								intent
+								component
+							)
+							permission ;component type specific
+						)
+						label
+					)
+				)
+				(if 
+					(jmlset-is-member
+						(select 
+							(select
+								(select
+									intent
+									context
+								)
+								mainfest
+							)
+							components	
+						)
+						(select ;TODO!!get real component number
+							(select
+								intent
+								component
+							)
+							name
+						)
+					)
+					(jmlset-is-member
+						(select ;from mainfest
+							(select ;from context
+								(select intent context) 
+								mainfest
+							)
+							uses-permission
+						)
+						(select 
+							(select 
+								(select
+									intent
+									component
+								)
+								permission ;component type specific
+							)
+							label
+						)
+					)
+					false
+				)
+			)
+			applications::(select initial-state applications)
+		)
+	)
+)
+
+;Intent myIntent = new Intent(this, NewActivity.class);
+(define INTENT-startActivity::android-intent (mk-record 
+	context::application-FriendTracker-state5
+	component::ACTIVITY-FriendTrackerControl-state0
+	action::0
+	data::0
+	FLAG_GRANT_READ_URI_PERMISSION::false
+	FLAG_GRANT_WRITE_URI_PERMISSION::false
+))
+;startActivity(INTENT-startActivity);
+
+;some tests
+(define testsetx::jmlset 0b00000111 ) ;{123}
+(assert (= 
+	(select ;from mainfest
+		(select ;from context
+			(select INTENT-startActivity context) 
+			mainfest
+		)
+		uses-permission
+	)
+	testsetx
+))
+
+
+
+(assert (= (select (android-startActivity state2 INTENT-startActivity ) security) true))
+
+
+
+;Activity.startActivityForResult(); 
+
+;Service permissions (applied to the <service> tag) restrict who can start or bind to the associated service. 
+;The permission is checked during Context.startService(), Context.stopService() and Context.bindService(); 
+
+;BroadcastReceiver permissions (applied to the <receiver> tag) restrict who can send broadcasts to the associated receiver. 
+;The permission is checked after Context.sendBroadcast() returns, as the system tries to deliver the submitted broadcast to the given receiver. 
+;As a result, a permission failure will not result in an exception being thrown back to the caller; it will just not deliver the intent. 
+
+;ContentProvider permissions (applied to the <provider> tag) restrict who can access the data in a ContentProvider. 
+;there are two separate permission attributes you can set: android:readPermission restricts who can read from the provider, and android:writePermission restricts who can write to it. 
+;Note that if a provider is protected with both a read and write permission, holding only the write permission does not mean you can read from a provider. 
+;The permissions are checked when you first retrieve a provider (if you don't have either permission, a SecurityException will be thrown), and as you perform operations on the provider. 
+;Using ContentResolver.query() requires holding the read permission; 
+
+;using ContentResolver.insert(), ContentResolver.update(), ContentResolver.delete() requires the write permission. 
+
+
+;(Content providers have an important additional security facility available to them called URI permissions.) 
+
+;pending intent
+
+
+
+
+
+(check)
+
