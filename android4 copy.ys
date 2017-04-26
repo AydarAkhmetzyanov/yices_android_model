@@ -1,0 +1,644 @@
+
+
+;android permissions model  
+
+(define-type android-type-permission (subtype (v::int) (and (> v 0) (<= v 8) ) ))
+(define-type android-type-protectionLevel int )
+
+(define android-permission-protectionLevel-normal::int 0) ;default level
+(define android-permission-protectionLevel-dangerous::int 1)
+(define android-permission-protectionLevel-signature::int 2)
+(define android-permission-protectionLevel-signatureOrSystem::int 3)
+
+(define-type android-permission  (record
+	label::android-type-permission
+	protectionLevel::android-type-protectionLevel
+))
+
+(define-type android-component)
+
+(define-type android-type-component (subtype (v::int) (and (> v 0) (<= v 8) ) ))
+(define-type android-component-activity (record
+	name::android-type-component
+	exported::bool
+	permission::android-permission
+))
+(define-type android-component-content-provider (record
+	name::android-type-component
+	exported::bool
+	readPermission::android-permission
+	writePermission::android-permission
+	grantUriPermissions::bool ;URI permission access
+	
+))
+(define-type android-component-broadcast-receiver (record
+	name::android-type-component
+	exported::bool
+	permission::android-permission
+))
+(define-type android-component-service (record
+	name::android-type-component
+	exported::bool
+	permission::android-permission
+))
+
+
+(define-type android-application-permission-set jmlset)
+(define-type android-application-component-set jmlset)
+
+(define-type android-type-application (subtype (v::int) (and (> v 0) (<= v 8) ) ))
+(define-type android-application-set jmlset)
+
+
+(define-type android-application-mainfest  (record
+	components::android-application-component-set
+	permissions::android-application-permission-set
+	uses-permission::android-application-permission-set
+))
+
+(define-type android-application  (record
+	label::android-type-application
+	mainfest::android-application-mainfest
+))
+
+(define-type android-type-action (subtype (v::int) (and (> v 0) (<= v 4) ) ))
+
+(define-type android-intent (record
+	context::android-application
+	component::android-component
+	action::android-type-action
+	data::android-intent-data
+	FLAG_GRANT_READ_URI_PERMISSION::bool
+	FLAG_GRANT_WRITE_URI_PERMISSION::bool
+))
+
+(define-type android-platform-state (record
+	security::bool ;security status
+	applications::android-application-set
+))
+
+;model-state-machine
+
+;add application to platform
+(define android-add-application::(-> android-platform-state android-application android-platform-state)
+	( lambda
+		(state::android-platform-state app::android-application) (mk-record 
+			security::(select state security)
+			applications::(jml-add-element
+				(select state applications) 
+				(select app label)
+			)
+		)
+	) 
+)
+
+;add activity to application
+(define android-add-component-activity::(-> android-application android-component-activity android-application)
+	( lambda
+		(app::android-application component::android-component-activity) (mk-record 
+			label::(select app label)
+			mainfest::(mk-record 
+				components::(jml-add-element
+					(select (select app mainfest) components)
+					(select component name) 
+				)
+				permissions::(jml-add-element
+					(select (select app mainfest) permissions)
+					(select (select component permission) label)
+				)
+				uses-permission::(select (select app mainfest) uses-permission)
+			)
+		)
+	)
+)
+
+;add provider to application
+(define android-add-component-content-provider::(-> android-application android-component-activity android-application)
+	( lambda
+		(app::android-application component::android-component-content-provider) (mk-record 
+			label::(select app label)
+			mainfest::(mk-record 
+				components::(jml-add-element
+					(select (select app mainfest) components)
+					(select component name) 
+				)
+				permissions::(jml-add-element
+					(jml-add-element
+						(select (select app mainfest) permissions)
+						(select (select component writePermission) label)
+					)
+					(select (select component readPermission) label)
+				)
+				uses-permission::(select (select app mainfest) uses-permission)
+			)
+		)
+	)
+)
+
+;add receiver to application
+(define android-add-component-broadcast-receiver::(-> android-application android-component-activity android-application)
+	( lambda
+		(app::android-application component::android-component-broadcast-receiver) (mk-record 
+			label::(select app label)
+			mainfest::(mk-record 
+				components::(jml-add-element
+					(select (select app mainfest) components)
+					(select component name) 
+				)
+				permissions::(jml-add-element
+					(select (select app mainfest) permissions)
+					(select (select component permission) label)
+				)
+				uses-permission::(select (select app mainfest) uses-permission)
+			)
+		)
+	)
+)
+
+;add service to application
+(define android-add-component-service::(-> android-application android-component-activity android-application)
+	( lambda
+		(app::android-application component::android-component-service) (mk-record 
+			label::(select app label)
+			mainfest::(mk-record 
+				components::(jmlset-union 
+					(select component name) 
+					(select (select app mainfest) components)
+				)
+				permissions::(jmlset-union 
+					(select (select component permission) label)
+					(select (select app mainfest) permissions)
+				)
+				uses-permission::(select (select app mainfest) uses-permission)
+			)
+		)
+	)
+)
+
+;add permission to application
+(define android-add-uses-permission::(-> android-application android-permission android-application)
+	( lambda 
+		(app::android-application permission::android-permission) (mk-record 
+			label::(select app label)
+			mainfest::(mk-record 
+				components::(select (select app mainfest) components)
+				permissions::(select (select app mainfest) components)
+				uses-permission::(jml-add-element
+					(select (select app mainfest) uses-permission)
+					(select permission label)
+				)
+			)
+		)
+	)
+)
+
+
+;----------------
+;model definition
+;----------------
+
+(define state0::android-platform-state (mk-record 
+	security::true
+	applications::(mk-bv 8 0)
+))
+
+;define applications
+(define application-FriendTracker::int 1)
+(define application-FriendTracker-state0::android-application (mk-record 
+	label::application-FriendTracker
+	mainfest::(mk-record 
+		components::(mk-bv 8 0)
+		permissions::(mk-bv 8 0)
+		uses-permission::(mk-bv 8 0)
+	)
+))
+;add application to android platform state
+(define state1::android-platform-state (android-add-application state0 application-FriendTracker-state0))
+;define components 
+(define ACTIVITY-FriendTrackerControl::android-type-component 1)
+(define PERMISSION-FriendTrackerControl::android-type-permission 1)
+(define ACTIVITY-FriendTrackerControl-state0::android-component-activity (mk-record 
+	name::ACTIVITY-FriendTrackerControl
+	exported::false
+	permission::(mk-record
+		label::PERMISSION-FriendTrackerControl
+		permission-level::android-permission-protectionLevel-normal
+	)
+))
+(define PROVIDER-FriendProvider::android-type-component 2)
+(define PERMISSION-FriendProvider-readPermission::android-type-permission 2)
+(define PERMISSION-FriendProvider-writePermission::android-type-permission 3)
+(define PROVIDER-FriendProvider-state0::android-component-content-provider (mk-record 
+	name::PROVIDER-FriendProvider
+	exported::true
+	readPermission::(mk-record
+		label::PERMISSION-FriendProvider-readPermission
+		permission-level::android-permission-protectionLevel-normal
+	)
+	writePermission::(mk-record
+		label::PERMISSION-FriendProvider-writePermission
+		permission-level::android-permission-protectionLevel-normal
+	)
+	grantUriPermissions::true
+))
+;add components to applications
+(define application-FriendTracker-state1::android-application (android-add-component-activity application-FriendTracker-state0 ACTIVITY-FriendTrackerControl-state0 ))
+(define application-FriendTracker-state2::android-application (android-add-component-content-provider application-FriendTracker-state1 PROVIDER-FriendProvider-state0 ))
+
+;add uses permission to app
+(define application-FriendTracker-state3::android-application (android-add-uses-permission application-FriendTracker-state2 (select ACTIVITY-FriendTrackerControl-state0  permission) ))
+(define application-FriendTracker-state4::android-application (android-add-uses-permission application-FriendTracker-state3 (select PROVIDER-FriendProvider-state0 readPermission) ))
+(define application-FriendTracker-state5::android-application (android-add-uses-permission application-FriendTracker-state4 (select PROVIDER-FriendProvider-state0 writePermission) ))
+
+;TODO check state5
+(define componentlist::jmlset 
+	(select
+		(select
+			application-FriendTracker-state5
+			mainfest	
+		)
+		components
+	)
+)
+(assert (= 
+	componentlist
+	0b00000011
+))
+
+(define application-FriendViewer::int 2)
+(define application-FriendViewer-state0::android-application (mk-record 
+	label::application-FriendViewer
+	mainfest::(mk-record 
+		components::(mk-bv 8 0)
+		permissions::(mk-bv 8 0)
+		uses-permission::(mk-bv 8 0)
+	)
+))
+;add application to android platform state
+(define state2::android-platform-state (android-add-application state1 application-FriendViewer-state0))
+(define application-FriendViewer-state1::android-application (android-add-uses-permission application-FriendViewer-state0 (select ACTIVITY-FriendTrackerControl-state0  permission) ))
+
+;-------------------------
+;machine-execution methods
+;-------------------------
+
+
+;checking permission
+
+;Activity permissions (applied to the <activity> tag) restrict who can start the associated activity. 
+;The permission is checked during Context.startActivity() and Activity.startActivityForResult(); 
+;startActivity() ;todo exported check!!!!!!!!!!
+(define android-startActivity::(-> android-platform-state android-intent android-platform-state)
+ (lambda (initial-state::android-platform-state intent::android-intent) (mk-record 
+			security::(if 
+				(select 
+					(select
+						intent
+						component
+					)
+					exported
+				)
+				(jmlset-is-member
+					(select ;from mainfest
+						(select ;from context
+							(select intent context) 
+							mainfest
+						)
+						uses-permission
+					)
+					(select 
+						(select 
+							(select
+								intent
+								component
+							)
+							permission ;component type specific
+						)
+						label
+					)
+				)
+				(if 
+					(jmlset-is-member
+						(select 
+							(select
+								(select
+									intent
+									context
+								)
+								mainfest
+							)
+							components	
+						)
+						(select ;TODO!!get real component number
+							(select
+								intent
+								component
+							)
+							name
+						)
+					)
+					(jmlset-is-member
+						(select ;from mainfest
+							(select ;from context
+								(select intent context) 
+								mainfest
+							)
+							uses-permission
+						)
+						(select 
+							(select 
+								(select
+									intent
+									component
+								)
+								permission ;component type specific
+							)
+							label
+						)
+					)
+					false
+				)
+			)
+			applications::(select initial-state applications)
+		)
+	)
+)
+
+;Intent myIntent = new Intent(this, NewActivity.class);
+(define INTENT-startActivity::android-intent (mk-record 
+	context::application-FriendTracker-state5
+	component::ACTIVITY-FriendTrackerControl-state0
+	action::0
+	data::0
+	FLAG_GRANT_READ_URI_PERMISSION::true
+	FLAG_GRANT_WRITE_URI_PERMISSION::true
+))
+;startActivity(INTENT-startActivity);
+(assert (= (select (android-startActivity state2 INTENT-startActivity ) security) true))
+
+;Activity.startActivityForResult(); 
+(define android-startActivityForResult::(-> android-platform-state android-intent android-platform-state)
+ (lambda (initial-state::android-platform-state intent::android-intent) 
+ 	(android-startActivity initial-state intent )
+ ))
+ (define INTENT-startActivityfromotherapp::android-intent (mk-record 
+	context::application-FriendViewer-state1
+	component::ACTIVITY-FriendTrackerControl-state0
+	action::0
+	data::0
+	FLAG_GRANT_READ_URI_PERMISSION::false
+	FLAG_GRANT_WRITE_URI_PERMISSION::false
+))
+;check exported permission and other type of permission usage
+(assert (= (select (android-startActivityForResult state2 INTENT-startActivityfromotherapp ) security) false))
+
+;Service permissions (applied to the <service> tag) restrict who can start or bind to the associated service. 
+;The permission is checked during Context.startService(), Context.stopService() and Context.bindService(); 
+;same as activity
+(define android-startService::(-> android-platform-state android-intent android-platform-state)
+ (lambda (initial-state::android-platform-state intent::android-intent) 
+ 	(android-startActivity initial-state intent )
+ ))
+ (define android-stopService::(-> android-platform-state android-intent android-platform-state)
+ (lambda (initial-state::android-platform-state intent::android-intent) 
+ 	(android-startActivity initial-state intent )
+ ))
+ (define android-bindService::(-> android-platform-state android-intent android-platform-state)
+ (lambda (initial-state::android-platform-state intent::android-intent) 
+ 	(android-startActivity initial-state intent )
+ ))
+
+
+;BroadcastReceiver permissions (applied to the <receiver> tag) restrict who can send broadcasts to the associated receiver. 
+;The permission is checked after Context.sendBroadcast() returns, as the system tries to deliver the submitted broadcast to the given receiver. 
+;As a result, a permission failure will not result in an exception being thrown back to the caller; it will just not deliver the intent. 
+(define android-sendBroadcast::(-> android-platform-state android-intent android-platform-state)
+ (lambda (initial-state::android-platform-state intent::android-intent) 
+ 	(android-startActivity initial-state intent )
+ ))
+
+;ContentProvider permissions (applied to the <provider> tag) restrict who can access the data in a ContentProvider. 
+;there are two separate permission attributes you can set: android:readPermission restricts who can read from the provider, and android:writePermission restricts who can write to it. 
+;Note that if a provider is protected with both a read and write permission, holding only the write permission does not mean you can read from a provider. 
+;The permissions are checked when you first retrieve a provider (if you don't have either permission, a SecurityException will be thrown), and as you perform operations on the provider. 
+;Using ContentResolver.query() requires holding the read permission; 
+(define android-ContentResolverquery::(-> android-platform-state android-intent android-platform-state)
+ (lambda (initial-state::android-platform-state intent::android-intent) (mk-record 
+			security::(if 
+				(select 
+					(select
+						intent
+						component
+					)
+					exported
+				)
+				(jmlset-is-member
+					(select ;from mainfest
+						(select ;from context
+							(select intent context) 
+							mainfest
+						)
+						uses-permission
+					)
+					(select 
+						(select 
+							(select
+								intent
+								component
+							)
+							readPermission ;component type specific
+						)
+						label
+					)
+				)
+				(if 
+					(jmlset-is-member
+						(select 
+							(select
+								(select
+									intent
+									context
+								)
+								mainfest
+							)
+							components	
+						)
+						(select ;TODO!!get real component number
+							(select
+								intent
+								component
+							)
+							name
+						)
+					)
+					(jmlset-is-member
+						(select ;from mainfest
+							(select ;from context
+								(select intent context) 
+								mainfest
+							)
+							uses-permission
+						)
+						(select 
+							(select 
+								(select
+									intent
+									component
+								)
+								readPermission ;component type specific
+							)
+							label
+						)
+					)
+					false
+				)
+			)
+			applications::(select initial-state applications)
+		)
+	)
+)
+
+;using ContentResolver.insert(), ContentResolver.update(), ContentResolver.delete() requires the write permission. 
+(define android-ContentResolverinsert::(-> android-platform-state android-intent android-platform-state)
+ (lambda (initial-state::android-platform-state intent::android-intent) (mk-record 
+			security::(if 
+				(select 
+					(select
+						intent
+						component
+					)
+					exported
+				)
+				(jmlset-is-member
+					(select ;from mainfest
+						(select ;from context
+							(select intent context) 
+							mainfest
+						)
+						uses-permission
+					)
+					(select 
+						(select 
+							(select
+								intent
+								component
+							)
+							writePermission ;component type specific
+						)
+						label
+					)
+				)
+				(if 
+					(jmlset-is-member
+						(select 
+							(select
+								(select
+									intent
+									context
+								)
+								mainfest
+							)
+							components	
+						)
+						(select ;TODO!!get real component number
+							(select
+								intent
+								component
+							)
+							name
+						)
+					)
+					(jmlset-is-member
+						(select ;from mainfest
+							(select ;from context
+								(select intent context) 
+								mainfest
+							)
+							uses-permission
+						)
+						(select 
+							(select 
+								(select
+									intent
+									component
+								)
+								writePermission ;component type specific
+							)
+							label
+						)
+					)
+					false
+				)
+			)
+			applications::(select initial-state applications)
+		)
+	)
+)
+(define android-ContentResolverdelete::(-> android-platform-state android-intent android-platform-state)
+ (lambda (initial-state::android-platform-state intent::android-intent) 
+ 	(android-ContentResolverinsert initial-state intent )
+ ))
+ (define android-ContentResolverupdate::(-> android-platform-state android-intent android-platform-state)
+ (lambda (initial-state::android-platform-state intent::android-intent) 
+ 	(android-ContentResolverinsert initial-state intent )
+ ))
+
+;pending intent,delegation; intent received
+(define android-pendingIntent-send::(-> android-application android-intent android-application)
+	( lambda 
+		(app::android-application intent::android-intent) (mk-record 
+			label::(select app label)
+			mainfest::(mk-record 
+				components::(select (select app mainfest) components)
+				permissions::(select (select app mainfest) components)
+				uses-permission::(jml-add-element
+					(select (select app mainfest) uses-permission)
+					(select (select (select intent component) permission) label)
+				)
+			)
+		)
+	)
+)
+
+;pending intent cancel,revocation of delegated permission
+(define android-pendingIntent-cancel::(-> android-application android-intent android-application)
+	( lambda 
+		(app::android-application intent::android-intent) (mk-record 
+			label::(select app label)
+			mainfest::(mk-record 
+				components::(select (select app mainfest) components)
+				permissions::(select (select app mainfest) components)
+				uses-permission::(jml-remove
+					(select (select app mainfest) uses-permission)
+					(select (select (select intent component) permission) label)
+				)
+			)
+		)
+	)
+)
+
+;(Content providers have an important additional security facility available to them called URI permissions.) ,delegation
+;FLAG_GRANT_READ_URI_PERMISSION
+;If set, the recipient of this Intent will be granted permission to perform read operations on the URI in the Intent's data;
+(define android-URIpermissionintent-send::(-> android-application android-intent android-application)
+	( lambda 
+		(app::android-application intent::android-intent) (mk-record 
+			label::(select app label)
+			mainfest::(mk-record 
+				components::(select (select app mainfest) components)
+				permissions::(select (select app mainfest) components)
+				uses-permission::(jml-add-element
+					(select (select app mainfest) uses-permission)
+					(select intent data)
+				)
+			)
+		)
+	)
+)
+
+
+
+
+
+(check)
+

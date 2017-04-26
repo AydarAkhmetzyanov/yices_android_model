@@ -747,16 +747,12 @@
 	mainfest::android-application-mainfest
 ))
 
-
-
 (define-type android-type-action (subtype (v::int) (and (> v 0) (<= v 4) ) ))
-(define-type android-intent-data (subtype (v::int) (and (> v 0) (<= v 8) ) ))
 
 (define-type android-intent (record
 	context::android-application
 	component::android-component
-	action::android-type-action
-	data::android-intent-data
+	data::android-component-content-provider ;component representation of URI 
 	FLAG_GRANT_READ_URI_PERMISSION::bool
 	FLAG_GRANT_WRITE_URI_PERMISSION::bool
 ))
@@ -1057,8 +1053,6 @@
 (define INTENT-startActivity::android-intent (mk-record 
 	context::application-FriendTracker-state5
 	component::ACTIVITY-FriendTrackerControl-state0
-	action::0
-	data::0
 	FLAG_GRANT_READ_URI_PERMISSION::true
 	FLAG_GRANT_WRITE_URI_PERMISSION::true
 ))
@@ -1273,7 +1267,7 @@
  ))
 
 ;pending intent,delegation; intent received
-(define android-pendingIntentsend::(-> android-application android-intent android-application)
+(define android-pendingIntent-send::(-> android-application android-intent android-application)
 	( lambda 
 		(app::android-application intent::android-intent) (mk-record 
 			label::(select app label)
@@ -1289,26 +1283,193 @@
 	)
 )
 
-
-
-;(Content providers have an important additional security facility available to them called URI permissions.) ,delegation
-;FLAG_GRANT_READ_URI_PERMISSION
-;If set, the recipient of this Intent will be granted permission to perform read operations on the URI in the Intent's data;
-(define android-URIpermissionintentsend::(-> android-application android-intent android-application)
+;pending intent cancel,revocation of delegated permission
+(define android-pendingIntent-cancel::(-> android-application android-intent android-application)
 	( lambda 
 		(app::android-application intent::android-intent) (mk-record 
 			label::(select app label)
 			mainfest::(mk-record 
 				components::(select (select app mainfest) components)
 				permissions::(select (select app mainfest) components)
-				uses-permission::(jml-add-element
+				uses-permission::(jml-remove
 					(select (select app mainfest) uses-permission)
-					(select intent data)
+					(select (select (select intent component) permission) label)
 				)
 			)
 		)
 	)
 )
+
+;explicit intent - grantUriPermission
+(define android-grantUriPermission-read::(-> android-application android-application android-component-content-provider android-application)
+	( lambda 
+		(app::android-application context::android-application provider::android-component-content-provider) (mk-record 
+			label::(select app label)
+			mainfest::(mk-record 
+				components::(select (select app mainfest) components)
+				permissions::(select (select app mainfest) components)
+				uses-permission::(jml-add-element
+					(select (select app mainfest) uses-permission)
+					(select (select provider readPermission) label)
+				)
+			)
+		)
+	)
+)
+
+;explicit intent - grantUriPermission
+(define android-grantUriPermission-write::(-> android-application android-application android-component-content-provider android-application)
+	( lambda 
+		(app::android-application context::android-application provider::android-component-content-provider) (mk-record 
+			label::(select app label)
+			mainfest::(mk-record 
+				components::(select (select app mainfest) components)
+				permissions::(select (select app mainfest) components)
+				uses-permission::(jml-add-element
+					(select (select app mainfest) uses-permission)
+					(select (select provider writePermission) label)
+				)
+			)
+		)
+	)
+)
+
+;revocation of explicit URI intent revokeUriPermission
+(define android-revokeUriPermission-read::(-> android-application android-application android-component-content-provider android-application)
+	( lambda 
+		(app::android-application context::android-application component::android-component-content-provider) (mk-record 
+			label::(select app label)
+			mainfest::(mk-record 
+				components::(select (select app mainfest) components)
+				permissions::(select (select app mainfest) components)
+				uses-permission::(jml-remove
+					(select (select app mainfest) uses-permission)
+					(select (select component readPermission) label)
+				)
+			)
+		)
+	)
+)
+
+(define android-revokeUriPermission-write::(-> android-application android-application android-component-content-provider android-application)
+	( lambda 
+		(app::android-application context::android-application component::android-component-content-provider) (mk-record 
+			label::(select app label)
+			mainfest::(mk-record 
+				components::(select (select app mainfest) components)
+				permissions::(select (select app mainfest) components)
+				uses-permission::(jml-remove
+					(select (select app mainfest) uses-permission)
+					(select (select component writePermission) label)
+				)
+			)
+		)
+	)
+)
+
+;(Content providers have an important additional security facility available to them called URI permissions.) ,delegation
+;FLAG_GRANT_READ_URI_PERMISSION
+;If set, the recipient of this Intent will be granted permission to perform read operations on the URI in the Intent's data;
+;URI leads to the content provider thus access provided based on read/write URI permission attribute and content providers grant uri permission flag
+(define android-URIpermission-read-intent-send::(-> android-application android-intent android-application)
+	( lambda 
+		(app::android-application intent::android-intent) (mk-record 
+			label::(select app label)
+			mainfest::(mk-record 
+				components::(select (select app mainfest) components)
+				permissions::(select (select app mainfest) components)
+				uses-permission::(if 
+					(select (select intent data) grantUriPermissions)
+					if(
+						(select intent FLAG_GRANT_READ_URI_PERMISSION)
+						(jml-add-element
+							(select (select app mainfest) uses-permission)
+							(select (select (select intent data) readPermission) label)
+						)
+						(select (select app mainfest) uses-permission)
+					)
+					(select (select app mainfest) uses-permission)
+				)
+			)
+		)
+	)
+)
+
+(define android-URIpermission-write-intent-send::(-> android-application android-intent android-application)
+	( lambda 
+		(app::android-application intent::android-intent) (mk-record 
+			label::(select app label)
+			mainfest::(mk-record 
+				components::(select (select app mainfest) components)
+				permissions::(select (select app mainfest) components)
+				uses-permission::(if 
+					(select (select intent data) grantUriPermissions)
+					if(
+						(select intent FLAG_GRANT_READ_URI_PERMISSION)
+						(jml-add-element
+							(select (select app mainfest) uses-permission)
+							(select (select (select intent data) writePermission) label)
+						)
+						(select (select app mainfest) uses-permission)
+					)
+					(select (select app mainfest) uses-permission)
+				)
+			)
+		)
+	)
+)
+
+;-----------------------------------------
+;TEST permission delegation and revocation
+;-----------------------------------------
+  
+(define application-docReader::int 3)
+(define application-docReader-state0::android-application (mk-record 
+	label::application-docReader
+	mainfest::(mk-record 
+		components::(mk-bv 8 0)
+		permissions::(mk-bv 8 0)
+		uses-permission::(mk-bv 8 0)
+	)
+))
+;add application to android platform state
+(define state3::android-platform-state (android-add-application state2 application-docReader-state0))
+
+;define intent to use provider
+(define INTENT-accessprovier::android-intent (mk-record 
+	context::application-docReader-state0
+	component::PROVIDER-FriendProvider-state0
+))
+
+;doc viewer dont have READ! access to PROVIDER-FriendProvider
+(assert (= (select (android-ContentResolverquery state3 INTENT-accessprovier ) security) false))
+
+;execute grantUriPermission
+(define application-docReader-state1::android-application (android-grantUriPermission-read application-FriendTracker-state5 application-docReader-state0 PROVIDER-FriendProvider-state0 ))
+
+;define intent to use provider
+(define INTENT-accessprovier1::android-intent (mk-record 
+	context::application-docReader-state1
+	component::PROVIDER-FriendProvider-state0
+))
+
+;doc viewer have READ! access to PROVIDER-FriendProvider
+(assert (= (select (android-ContentResolverquery state3 INTENT-accessprovier1 ) security) true))
+
+;permission revocation by explicit revokeUriPermission
+;execute grantUriPermission
+(define application-docReader-state2::android-application (android-revokeUriPermission-read application-FriendTracker-state5 application-docReader-state0 PROVIDER-FriendProvider-state0 ))
+
+;define intent to use provider
+(define INTENT-accessprovier2::android-intent (mk-record 
+	context::application-docReader-state2
+	component::PROVIDER-FriendProvider-state0
+))
+
+;doc viewer dont have READ! access to PROVIDER-FriendProvider
+(assert (= (select (android-ContentResolverquery state3 INTENT-accessprovier2 ) security) false))
+;success
+
 
 (check)
 
