@@ -1,3 +1,4 @@
+;Set of integers
 (define-type jmlset (bitvector 8))
 
 ;00111111 
@@ -13,7 +14,7 @@
 (define set-bv7::(bitvector 8) (bv-shift-left0 set-bv1 6))
 (define set-bv8::(bitvector 8) (bv-shift-left0 set-bv1 7))
 
-;fixed
+;Singleton set constructor
 (define jmlset-singleton::(-> int jmlset)
   (lambda(a::int)
     (if (= a 0) set-bv0
@@ -27,40 +28,40 @@
 	(if (= a 8) set-bv8
 	set-bv0 )))))))))))
 	
-;a) isEqual (boolean function that compares two sets for equality) maybe rewrite (= set1 set2)
-;(define jmlset-is-equal::(-> jmlset jmlset bool)
+;Function that compares two sets for equality
 (define jmlset-is-equal::(-> jmlset jmlset bool)
 	(lambda(s1::jmlset s2::jmlset)( = s1 s2 ) )
 )
 
-;e) jml-add-element (adds an element to a set)
+;Addition of an element to a set
 (define jml-add-element::(-> jmlset int jmlset)
 	( lambda
 		(s::jmlset x::int) (bv-or s (jmlset-singleton x))
 	) 
 )
 
-;f) jml-remove (removes an element from a set)
+;Removes an element from a set
 (define jml-remove::(-> jmlset int jmlset)
 	( lambda
 		(s::jmlset x::int) (bv-and s (bv-not (jmlset-singleton x)))
 	) 
 )
 
+;Sets intersection
 (define jmlset-intersection::(-> jmlset jmlset jmlset)
 	( lambda 
 		(s1::jmlset s2::jmlset) (bv-and s1 s2)
 	)
 )
 
-;c) jml-union (union of two sets)
+;Union of two sets
 (define jmlset-union::(-> jmlset jmlset jmlset)
 	( lambda 
 		(s1::jmlset s2::jmlset) (bv-or s1 s2)
 	)
 )
 
-;d) jml-diff (set difference) as and not
+;Set difference
 (define jmlset-difference::(-> jmlset jmlset jmlset)
 	( lambda 
 		(s1::jmlset s2::jmlset) (bv-and s1 (bv-not s2) )
@@ -68,14 +69,14 @@
 )
 
 
-;b) isSubset (boolean function that compares two sets for inclusion) 
+;Boolean function that compares two sets for inclusion
 (define jmlset-is-subset::(-> jmlset jmlset bool)
 	(lambda(subset::jmlset superset::jmlset)
 		( jmlset-is-equal (bv-and subset superset) subset  )
 	)
 )
 
-;is member of set
+;Boolean function for checking membership of a set
 (define jmlset-is-member::(-> jmlset int bool)
 	( lambda
 		(s::jmlset x::int) (jmlset-is-subset (jmlset-singleton x) s)
@@ -84,7 +85,7 @@
 
 
 
-
+;Definition of relation over integers
 (define-type jmlrel (bitvector 64))
 
 (define testrelation::jmlrel  0b1100000000000000000000000000000000000000000000000000000000000000 ) ; 1->8,7
@@ -98,6 +99,7 @@
 (define testset2::jmlset 0b00000110 ) ;{2,3}
 (define testset3::jmlset 0b00011110 ) ;{2,3,4,5}
 
+;Obtains range from relation definition
 (define jmlrel-get-range::(-> jmlrel jmlset)
 	(lambda (r::jmlrel)
 	(jmlset-union
@@ -148,7 +150,7 @@
 
 (assert (= 0b0000000000000000000000000000000000000000111111110000000011111111 (jmlrel-makerel 0b10100000)) )
 
- ;domain-restriction by a set
+ ;Domain restriction by a set
  (define jmlrel-domain-restriction::(-> jmlrel jmlset jmlrel)
  	( lambda 
 		(rel::jmlrel set::jmlset)  (bv-and (jmlrel-makerel set) rel)
@@ -160,12 +162,12 @@
  
  
  
- ;application-of-a-relation-to-a-set
- (define jmlrel-application::(-> jmlrel jmlset jmlset)
+;Application of relation
+(define jmlrel-application::(-> jmlrel jmlset jmlset)
  	( lambda 
 		(rel::jmlrel set::jmlset) (jmlrel-get-range (jmlrel-domain-restriction rel set))
 	)
- ) 
+) 
 
 (assert (= 0b1111111100000000111111110000000000000000000000000000000000000000 (jmlrel-makerel testset)) )
 (assert (= 0b1100000000000000000000000000000000000000000000000000000000000000 (bv-and testrelation (jmlrel-makerel testset))) )
@@ -180,7 +182,7 @@
 
 
     
-;makerel 1 to 1 rel from tuple
+;Generate 1 to 1 relation from tuple
 (define jmlrel-singleton::(-> (tuple int int) jmlrel )
 	( lambda 
 		(set1::(tuple int int)) 
@@ -211,7 +213,7 @@
 
 (assert (= testrelation3 (jmlrel-singleton (mk-tuple 2 6) )) ) ;2->6
 
-;union
+;Union of relation
 (define jmlrel-union::(-> jmlrel jmlrel jmlrel)
 	( lambda 
 		(s1::jmlrel s2::jmlrel) (bv-or s1 s2)
@@ -223,7 +225,7 @@
 (assert (= (jmlrel-union testrelation testrelation2) testrelation2) )
 
 
-;intersection
+;Intersection of relation
 (define jmlrel-intersection::(-> jmlrel jmlrel jmlrel)
 	( lambda 
 		(s1::jmlrel s2::jmlrel) (bv-and s1 s2)
@@ -235,7 +237,7 @@
 (assert (= (jmlrel-intersection testrelation testrelation3) 0b0000000000000000000000000000000000000000000000000000000000000000) )
  
  
- ;domain-subtraction
+ ;Domain subtraction over relation
   (define jmlrel-domain-subtraction::(-> jmlrel jmlset jmlrel)
  	( lambda 
 		(rel::jmlrel set::jmlset)   (bv-and (jmlrel-makerel (bv-not set)) rel) 
@@ -245,7 +247,7 @@
  (assert (= 0b1111111100000000111111110000000000000000000000000000000000000000 (jmlrel-domain-subtraction 0b1111111111111111111111110000000000000000000000000000000000000000 0b11110010)) )
  (assert (= 0b0000000000000000000000000000000000000000000000000000000000000000 (jmlrel-domain-subtraction 0b1111111111111111111111110000000000000000000000000000000000000000 0b11111111)) )
  
-
+;Generate n to n relation from a set
 (define jmlrel-makerelforrange::(-> jmlset jmlrel )
 	( lambda 
 		(set1::jmlset) 
@@ -274,7 +276,7 @@
 	)
 )
  
-;range-restriction
+;Restict range of relation
  (define jmlrel-range-restriction::(-> jmlrel jmlset jmlrel)
  	( lambda 
 		(rel::jmlrel set::jmlset)  (bv-and (jmlrel-makerelforrange set) rel)
@@ -284,7 +286,7 @@
   (assert (= 0b1111111111111111111111110000000000000000000000000000000000000000 (jmlrel-range-restriction 0b1111111111111111111111110000000000000000000000000000000000000000 0b11111111)) )
    (assert (= 0b0000111100001111000011110000000000000000000000000000000000000000 (jmlrel-range-restriction 0b1111111111111111111111110000000000000000000000000000000000000000 0b00001111)) )
    
- ;range-subtraction
+ ;Range subtraction
  (define jmlrel-range-subtraction::(-> jmlrel jmlset jmlrel)
  	( lambda 
 		(rel::jmlrel set::jmlset)  (bv-and (jmlrel-makerelforrange (bv-not set)) rel)
@@ -306,6 +308,7 @@
 ;57	49	41	33	25	17	9	1
 ;56	48	40	32	24	16	8	0
  
+;inverse of a relation
 (define jmlrel-inverse::(-> jmlrel jmlrel )
 	( lambda 
 		(rel::jmlrel) 
@@ -507,7 +510,7 @@
  (assert (= 0b1000000000000000000000000000000000000000000000100000000100000001 (jmlrel-inverse 0b1100000000100000000000000000000000000000000000000000000000000001)) )
  
 
-
+;Retrieving domain from relation definition
 (define jmlrel-get-domain::(-> jmlrel jmlset)
 	(lambda (rel::jmlrel)
 		(bv-concat 
@@ -658,7 +661,8 @@
  ;relational-overriding https://books.google.ru/books?id=u4a4BAAAQBAJ&pg=PA13&dq=define:relational+overriding&hl=ru&sa=X&ved=0ahUKEwiBs93vtdvRAhWkYpoKHdAfB6sQ6AEINDAD#v=onepage&q=define%3Arelational%20overriding&f=false
 ;rel1 U (subtractdomain(rel2,domain(rel1)) )
 
- (define jmlrel-overriding::(-> jmlrel jmlrel jmlrel)
+;Relational overriding
+(define jmlrel-overriding::(-> jmlrel jmlrel jmlrel)
  	( lambda 
 		(rel1::jmlrel rel2::jmlrel)  (bv-or (jmlrel-domain-subtraction rel2 (jmlrel-get-domain rel1) ) rel1)
 	)
@@ -675,10 +679,12 @@
  							   0b0000000000000000000000000000000000000000000000000000000000011111)) )
 
 
+;Forward composition of two relations
 (define forward-composition::(-> jmlrel jmlrel jmlset jmlset)
  (lambda (f::jmlrel g::jmlrel s::jmlset)
 	(jmlrel-application g (jmlrel-application f s)) ) )
 
+;Checking if relation is subrelation
 (define jmlrel-is-subset::(-> jmlrel jmlrel bool)
 	(lambda(subset::jmlrel superset::jmlrel)
 		( = (bv-and subset superset) subset  )
@@ -764,20 +770,20 @@
 
 ;model-state-machine
 
-;add application to platform
+;Add application to platform
 (define android-add-application::(-> android-platform-state android-application android-platform-state)
-	( lambda
-		(state::android-platform-state app::android-application) (mk-record 
-			security::(select state security)
-			applications::(jml-add-element
-				(select state applications) 
-				(select app label)
-			)
+( lambda
+	(state::android-platform-state app::android-application) (mk-record 
+		security::(select state security)
+		applications::(jml-add-element
+			(select state applications) 
+			(select app label)
 		)
-	) 
+	)
+) 
 )
 
-;add activity to application
+;Add activity to application
 (define android-add-component-activity::(-> android-application android-component-activity android-application)
 	( lambda
 		(app::android-application component::android-component-activity) (mk-record 
@@ -797,7 +803,7 @@
 	)
 )
 
-;add provider to application
+;Add provider to application
 (define android-add-component-content-provider::(-> android-application android-component-activity android-application)
 	( lambda
 		(app::android-application component::android-component-content-provider) (mk-record 
@@ -820,7 +826,7 @@
 	)
 )
 
-;add receiver to application
+;Add broadcast receiver to application
 (define android-add-component-broadcast-receiver::(-> android-application android-component-activity android-application)
 	( lambda
 		(app::android-application component::android-component-broadcast-receiver) (mk-record 
@@ -840,7 +846,7 @@
 	)
 )
 
-;add service to application
+;Add service to application
 (define android-add-component-service::(-> android-application android-component-activity android-application)
 	( lambda
 		(app::android-application component::android-component-service) (mk-record 
@@ -860,7 +866,7 @@
 	)
 )
 
-;add permission to application
+;Add permission to application
 (define android-add-uses-permission::(-> android-application android-permission android-application)
 	( lambda 
 		(app::android-application permission::android-permission) (mk-record 
@@ -1014,7 +1020,7 @@
 							)
 							components	
 						)
-						(select ;TODO!!get real component number
+						(select
 							(select
 								intent
 								component
@@ -1146,7 +1152,7 @@
 							)
 							components	
 						)
-						(select ;TODO!!get real component number
+						(select 
 							(select
 								intent
 								component
@@ -1223,7 +1229,7 @@
 							)
 							components	
 						)
-						(select ;TODO!!get real component number
+						(select 
 							(select
 								intent
 								component
@@ -1266,7 +1272,7 @@
  	(android-ContentResolverinsert initial-state intent )
  ))
 
-;pending intent,delegation; intent received
+;Pending intent sending, permission delegation
 (define android-pendingIntent-send::(-> android-application android-intent android-application)
 	( lambda 
 		(app::android-application intent::android-intent) (mk-record 
@@ -1283,7 +1289,7 @@
 	)
 )
 
-;pending intent cancel,revocation of delegated permission
+;Pending intent cancellation,revokation of delegated permission
 (define android-pendingIntent-cancel::(-> android-application android-intent android-application)
 	( lambda 
 		(app::android-application intent::android-intent) (mk-record 
@@ -1300,7 +1306,7 @@
 	)
 )
 
-;explicit intent - grantUriPermission
+;Explicit intent - grantUriPermission reading
 (define android-grantUriPermission-read::(-> android-application android-application android-component-content-provider android-application)
 	( lambda 
 		(app::android-application context::android-application provider::android-component-content-provider) (mk-record 
@@ -1317,7 +1323,7 @@
 	)
 )
 
-;explicit intent - grantUriPermission
+;Explicit intent - grantUriPermission writing
 (define android-grantUriPermission-write::(-> android-application android-application android-component-content-provider android-application)
 	( lambda 
 		(app::android-application context::android-application provider::android-component-content-provider) (mk-record 
@@ -1334,7 +1340,7 @@
 	)
 )
 
-;revocation of explicit URI intent revokeUriPermission
+;Revocation of explicit URI intent revokeUriPermission reading
 (define android-revokeUriPermission-read::(-> android-application android-application android-component-content-provider android-application)
 	( lambda 
 		(app::android-application context::android-application component::android-component-content-provider) (mk-record 
@@ -1351,6 +1357,7 @@
 	)
 )
 
+;Revocation of explicit URI intent revokeUriPermission writing
 (define android-revokeUriPermission-write::(-> android-application android-application android-component-content-provider android-application)
 	( lambda 
 		(app::android-application context::android-application component::android-component-content-provider) (mk-record 
@@ -1371,30 +1378,30 @@
 ;FLAG_GRANT_READ_URI_PERMISSION
 ;If set, the recipient of this Intent will be granted permission to perform read operations on the URI in the Intent's data;
 ;URI leads to the content provider thus access provided based on read/write URI permission attribute and content providers grant uri permission flag
+;URI read permission delegation with implicit intent
 (define android-URIpermission-read-intent-send::(-> android-application android-intent android-application)
-	( lambda 
-		(app::android-application intent::android-intent) (mk-record 
-			label::(select app label)
-			mainfest::(mk-record 
-				components::(select (select app mainfest) components)
-				permissions::(select (select app mainfest) components)
-				uses-permission::(if 
-					(select (select intent data) grantUriPermissions)
-					if(
-						(select intent FLAG_GRANT_READ_URI_PERMISSION)
-						(jml-add-element
-							(select (select app mainfest) uses-permission)
-							(select (select (select intent data) readPermission) label)
-						)
-						(select (select app mainfest) uses-permission)
-					)
+( lambda 
+(app::android-application intent::android-intent) (mk-record 
+	label::(select app label)
+	mainfest::(mk-record 
+		components::(select (select app mainfest) components)
+		permissions::(select (select app mainfest) components)
+		uses-permission::(if 
+			(select (select intent data) grantUriPermissions)
+			if(
+				(select intent FLAG_GRANT_READ_URI_PERMISSION)
+				(jml-add-element
 					(select (select app mainfest) uses-permission)
+					(select (select (select intent data) readPermission) label)
 				)
+				(select (select app mainfest) uses-permission)
 			)
+			(select (select app mainfest) uses-permission)
 		)
 	)
-)
+)))
 
+;URI write permission delegation with implicit intent
 (define android-URIpermission-write-intent-send::(-> android-application android-intent android-application)
 	( lambda 
 		(app::android-application intent::android-intent) (mk-record 
